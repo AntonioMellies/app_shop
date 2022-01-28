@@ -1,11 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shop/models/product.dart';
+import 'package:shop/providers/product_provider.dart';
 import 'package:shop/validators/general/validator_extension.dart';
 import 'package:shop/validators/general/validator_url.dart';
-import 'package:shop/validators/number/validator_number_min_limit.dart';
-import 'package:shop/validators/text/validator_text_min_limit.dart';
+import 'package:shop/validators/number/validator_min_value.dart';
+import 'package:shop/validators/text/validator_min_length.dart';
 import 'package:shop/validators/validator_builder.dart';
 import 'package:shop/validators/general/validator_required.dart';
 
@@ -33,6 +33,26 @@ class _ProductFormPageState extends State<ProductFormPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_formData.isEmpty) {
+      final arg = ModalRoute.of(context)?.settings.arguments;
+
+      if (arg != null) {
+        final product = arg as Product;
+        _formData['id'] = product.id;
+        _formData['name'] = product.name;
+        _formData['price'] = product.price;
+        _formData['description'] = product.description;
+        _formData['imageUrl'] = product.imageUrl;
+
+        _imageUrlController.text = product.imageUrl;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     super.dispose();
     _priceFocus.dispose();
@@ -53,13 +73,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
     }
 
     _formKey.currentState?.save();
-    final newProduct = Product(
-      id: Random().nextDouble().toString(),
-      name: _formData['name'] as String,
-      description: _formData['name'] as String,
-      price: _formData['name'] as double,
-      imageUrl: _formData['name'] as String,
-    );
+
+    Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    ).saveProduct(_formData);
+    Navigator.of(context).pop();
   }
 
   @override
@@ -81,15 +100,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
           child: ListView(
             children: [
               TextFormField(
+                initialValue: _formData['name']?.toString(),
                 decoration: const InputDecoration(labelText: 'Nome'),
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (value) {
                   FocusScope.of(context).requestFocus(_priceFocus);
                 },
                 onSaved: (name) => _formData['name'] = name ?? '',
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorTextMinLimit(3)]).valid(),
+                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(3)]).build(),
               ),
               TextFormField(
+                initialValue: _formData['price']?.toString(),
                 decoration: const InputDecoration(labelText: 'Preço'),
                 textInputAction: TextInputAction.next,
                 focusNode: _priceFocus,
@@ -98,16 +119,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 },
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onSaved: (price) => _formData['price'] = double.parse(price ?? '0'),
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorNumberMinLimit(0.01)]).valid(),
+                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinValue(0.01)]).build(),
               ),
               TextFormField(
+                initialValue: _formData['description']?.toString(),
                 decoration: const InputDecoration(labelText: 'Descrição'),
                 textInputAction: TextInputAction.next,
                 focusNode: _descriptionFocus,
                 keyboardType: TextInputType.multiline,
                 maxLines: 3,
                 onSaved: (description) => _formData['description'] = description ?? '',
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorTextMinLimit(8)]).valid(),
+                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(8)]).build(),
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -125,7 +147,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                         ValidatorRequired(),
                         ValidatorUrl(),
                         ValidatorExtension(extensions: ['png', 'jpg', 'jpeg']),
-                      ]).valid(),
+                      ]).build(),
                     ),
                   ),
                   Container(

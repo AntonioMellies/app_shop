@@ -16,7 +16,7 @@ class ValidatorBuilder {
     return this;
   }
 
-  String? valid() {
+  String? build() {
     return _validators.map((e) => e.valid(_value ?? '')).firstWhere((x) => x != null, orElse: () => null);
   }
 }

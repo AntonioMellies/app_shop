@@ -1,9 +1,9 @@
 import 'package:shop/validators/validator.dart';
 
-class ValidatorTextMinLimit implements Validator {
+class ValidatorMinLength implements Validator {
   final int _minLimit;
 
-  ValidatorTextMinLimit(this._minLimit);
+  ValidatorMinLength(this._minLimit);
 
   @override
   String? valid(String value) {

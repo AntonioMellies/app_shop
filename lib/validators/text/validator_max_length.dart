@@ -1,9 +1,9 @@
 import 'package:shop/validators/validator.dart';
 
-class ValidatorTextMaxLimit implements Validator {
+class ValidatorMaxLength implements Validator {
   final int _maxLimit;
 
-  ValidatorTextMaxLimit(this._maxLimit);
+  ValidatorMaxLength(this._maxLimit);
 
   @override
   String? valid(String value) {
