@@ -18,4 +18,8 @@ class ProductProvider with ChangeNotifier {
     _items.firstWhere((element) => element.id == product.id).toggleFavorite();
     notifyListeners();
   }
+
+   int get itemsCount {
+    return _items.length;
+  }
 }
