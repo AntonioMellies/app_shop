@@ -17,6 +17,13 @@ class Product {
     this.isFavorite = false,
   });
 
+  Product.fromProduct(this.id, Product another)
+      : name = another.name,
+        description = another.description,
+        price = another.price,
+        imageUrl = another.imageUrl,
+        isFavorite = another.isFavorite;
+
   void toggleFavorite() {
     isFavorite = !isFavorite;
   }

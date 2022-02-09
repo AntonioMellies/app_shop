@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shop/components/cart_item_widget.dart';
+import 'package:shop/models/cart_item.dart';
 import 'package:shop/providers/cart_provider.dart';
 import 'package:shop/providers/order_provider.dart';
 
@@ -41,23 +42,11 @@ class CartPage extends StatelessWidget {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     label: Text('R\$ ${cartProvider.totalAmount}'),
                     labelStyle: TextStyle(
-                      color:
-                          Theme.of(context).primaryTextTheme.headline6?.color,
+                      color: Theme.of(context).primaryTextTheme.headline6?.color,
                     ),
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      orderProvider.addOrder(cartProvider.totalAmount, items);
-                      cartProvider.clear();
-                    },
-                    child: const Text("Comprar"),
-                    style: TextButton.styleFrom(
-                      textStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
+                  BuyButton(cartProvider: cartProvider, orderProvider: orderProvider, items: items),
                 ],
               ),
             ),
@@ -71,5 +60,47 @@ class CartPage extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class BuyButton extends StatefulWidget {
+  const BuyButton({
+    Key? key,
+    required this.cartProvider,
+    required this.orderProvider,
+    required this.items,
+  }) : super(key: key);
+
+  final CartProvider cartProvider;
+  final OrderProvider orderProvider;
+  final List<CartItem> items;
+
+  @override
+  State<BuyButton> createState() => _BuyButtonState();
+}
+
+class _BuyButtonState extends State<BuyButton> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? const CircularProgressIndicator()
+        : TextButton(
+            onPressed: widget.cartProvider.itemsCount == 0
+                ? null
+                : () async {
+                    setState(() => _isLoading = true);
+                    await widget.orderProvider.addOrder(widget.cartProvider.totalAmount, widget.items);
+                    widget.cartProvider.clear();
+                    setState(() => _isLoading = false);
+                  },
+            child: const Text("Comprar"),
+            style: TextButton.styleFrom(
+              textStyle: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          );
   }
 }

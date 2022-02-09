@@ -5,6 +5,7 @@ import 'package:shop/components/badge.dart';
 import 'package:shop/components/product_grid.dart';
 import 'package:shop/models/enums/filter_options.dart';
 import 'package:shop/providers/cart_provider.dart';
+import 'package:shop/providers/product_provider.dart';
 import 'package:shop/utils/app_routes.dart';
 
 class ProductsOverviewPage extends StatefulWidget {
@@ -16,6 +17,15 @@ class ProductsOverviewPage extends StatefulWidget {
 
 class _ProductsOverviewPageState extends State<ProductsOverviewPage> {
   bool _showFavoriteOnly = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<ProductProvider>(context, listen: false).loadProducts().then((value) {
+      setState(() => _isLoading = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +74,7 @@ class _ProductsOverviewPageState extends State<ProductsOverviewPage> {
           )
         ],
       ),
-      body: ProductGrid(_showFavoriteOnly),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ProductGrid(_showFavoriteOnly),
       drawer: const AppDrawer(),
     );
   }

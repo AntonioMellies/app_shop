@@ -26,6 +26,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _formData = Map<String, Object>();
 
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -65,20 +67,40 @@ class _ProductFormPageState extends State<ProductFormPage> {
     setState(() {});
   }
 
-  void submitForm() {
+  Future<void> submitForm() async {
     final isValid = _formKey.currentState?.validate() ?? false;
 
     if (!isValid) {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     _formKey.currentState?.save();
 
-    Provider.of<ProductProvider>(
-      context,
-      listen: false,
-    ).saveProduct(_formData);
-    Navigator.of(context).pop();
+    try {
+      await Provider.of<ProductProvider>(
+        context,
+        listen: false,
+      ).saveProduct(_formData);
+      Navigator.of(context).pop();
+    } catch (error) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Erro'),
+          content: Text('Erro ao salvar o produto'),
+          actions: [
+            TextButton(
+              child: Text('Ok'),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          ],
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -93,90 +115,89 @@ class _ProductFormPageState extends State<ProductFormPage> {
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                initialValue: _formData['name']?.toString(),
-                decoration: const InputDecoration(labelText: 'Nome'),
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (value) {
-                  FocusScope.of(context).requestFocus(_priceFocus);
-                },
-                onSaved: (name) => _formData['name'] = name ?? '',
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(3)]).build(),
-              ),
-              TextFormField(
-                initialValue: _formData['price']?.toString(),
-                decoration: const InputDecoration(labelText: 'Preço'),
-                textInputAction: TextInputAction.next,
-                focusNode: _priceFocus,
-                onFieldSubmitted: (value) {
-                  FocusScope.of(context).requestFocus(_descriptionFocus);
-                },
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onSaved: (price) => _formData['price'] = double.parse(price ?? '0'),
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinValue(0.01)]).build(),
-              ),
-              TextFormField(
-                initialValue: _formData['description']?.toString(),
-                decoration: const InputDecoration(labelText: 'Descrição'),
-                textInputAction: TextInputAction.next,
-                focusNode: _descriptionFocus,
-                keyboardType: TextInputType.multiline,
-                maxLines: 3,
-                onSaved: (description) => _formData['description'] = description ?? '',
-                validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(8)]).build(),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      decoration: const InputDecoration(labelText: 'Url da Imagem'),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      focusNode: _imageUrlFocus,
-                      controller: _imageUrlController,
-                      onFieldSubmitted: (value) => submitForm(),
-                      onSaved: (imageUrl) => _formData['imageUrl'] = imageUrl ?? '',
-                      validator: (value) => ValidatorBuilder(value).addValidators([
-                        ValidatorRequired(),
-                        ValidatorUrl(),
-                        ValidatorExtension(extensions: ['png', 'jpg', 'jpeg']),
-                      ]).build(),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(15),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      initialValue: _formData['name']?.toString(),
+                      decoration: const InputDecoration(labelText: 'Nome'),
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (value) {
+                        FocusScope.of(context).requestFocus(_priceFocus);
+                      },
+                      onSaved: (name) => _formData['name'] = name ?? '',
+                      validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(3)]).build(),
                     ),
-                  ),
-                  Container(
-                    height: 100,
-                    width: 100,
-                    margin: const EdgeInsets.only(
-                      top: 10,
-                      left: 10,
+                    TextFormField(
+                      initialValue: _formData['price']?.toString(),
+                      decoration: const InputDecoration(labelText: 'Preço'),
+                      textInputAction: TextInputAction.next,
+                      focusNode: _priceFocus,
+                      onFieldSubmitted: (value) {
+                        FocusScope.of(context).requestFocus(_descriptionFocus);
+                      },
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onSaved: (price) => _formData['price'] = double.parse(price ?? '0'),
+                      validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinValue(0.01)]).build(),
                     ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.grey,
-                        width: 1,
-                      ),
+                    TextFormField(
+                      initialValue: _formData['description']?.toString(),
+                      decoration: const InputDecoration(labelText: 'Descrição'),
+                      textInputAction: TextInputAction.next,
+                      focusNode: _descriptionFocus,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 3,
+                      onSaved: (description) => _formData['description'] = description ?? '',
+                      validator: (value) => ValidatorBuilder(value).addValidators([ValidatorRequired(), ValidatorMinLength(8)]).build(),
                     ),
-                    alignment: Alignment.center,
-                    child: _imageUrlController.text.isEmpty
-                        ? const Text('Informe a URL')
-                        : FittedBox(
-                            child: Image.network(_imageUrlController.text),
-                            fit: BoxFit.cover,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            decoration: const InputDecoration(labelText: 'Url da Imagem'),
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.done,
+                            focusNode: _imageUrlFocus,
+                            controller: _imageUrlController,
+                            onFieldSubmitted: (value) => submitForm(),
+                            onSaved: (imageUrl) => _formData['imageUrl'] = imageUrl ?? '',
+                            validator: (value) => ValidatorBuilder(value).addValidators([
+                              ValidatorRequired(),
+                              ValidatorUrl(),
+                              ValidatorExtension(extensions: ['png', 'jpg', 'jpeg']),
+                            ]).build(),
                           ),
-                  )
-                ],
+                        ),
+                        Container(
+                          height: 100,
+                          width: 100,
+                          margin: const EdgeInsets.only(
+                            top: 10,
+                            left: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: _imageUrlController.text.isEmpty ? const Text('Informe a URL') : Image.network(_imageUrlController.text),
+                        )
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

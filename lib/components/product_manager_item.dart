@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shop/exceptions/http_exception.dart';
 import 'package:shop/models/product.dart';
 import 'package:shop/providers/product_provider.dart';
 import 'package:shop/utils/app_routes.dart';
@@ -10,6 +11,7 @@ class ProductManagerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     return ListTile(
       leading: CircleAvatar(
         backgroundImage: NetworkImage(product.imageUrl),
@@ -53,10 +55,18 @@ class ProductManagerItem extends StatelessWidget {
                       )
                     ],
                   ),
-                ).then((value) {
-                  print(value);
+                ).then((value) async {
                   if (value ?? false) {
-                    Provider.of<ProductProvider>(context, listen: false).delete(product);
+                    try {
+                      await Provider.of<ProductProvider>(
+                        context,
+                        listen: false,
+                      ).delete(product);
+                    } on HttpException catch (error) {
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(content: Text(error.toString())),
+                      );
+                    }
                   }
                 });
               },
