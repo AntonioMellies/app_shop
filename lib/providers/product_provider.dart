@@ -6,10 +6,18 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:shop/exceptions/http_exception.dart';
 import 'package:shop/models/product.dart';
+import 'package:shop/utils/app_url_firebase.dart';
 
 class ProductProvider with ChangeNotifier {
-  final _baseUrl = 'https://app-shop-50309-default-rtdb.firebaseio.com/products';
+  final String _token;
+  final String _uid;
   List<Product> _items = [];
+
+  ProductProvider([
+    this._token = '',
+    this._uid = '',
+    this._items = const [],
+  ]);
 
   List<Product> get items => [..._items];
   List<Product> get favoriteItems => _items.where((element) => element.isFavorite).toList();
@@ -17,19 +25,25 @@ class ProductProvider with ChangeNotifier {
   Future<void> loadProducts() async {
     _items.clear();
 
-    final response = await http.get(Uri.parse('$_baseUrl.json'));
+    final response = await http.get(Uri.parse('${AppUrlFirebase.PRODUCT_URL}.json?auth=$_token'));
 
     if (response.body == 'null') return;
 
+    final favResponse = await http.get(
+      Uri.parse('${AppUrlFirebase.USER_FAVORITES_URL}/${_uid}.json?auth=$_token'),
+    );
+    Map<String, dynamic> favData = favResponse.body == 'null' ? {} : jsonDecode(favResponse.body);
+
     Map<String, dynamic> data = jsonDecode(response.body);
     data.forEach((productId, productData) {
+      final isFavorite = favData[productId] ?? false;
       _items.add(Product(
         id: productId,
         name: productData['name'],
         description: productData['description'],
         price: productData['price'],
         imageUrl: productData['imageUrl'],
-        isFavorite: productData['isFavorite'],
+        isFavorite: isFavorite,
       ));
     });
   }
@@ -52,7 +66,7 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<void> save(Product product) async {
-    final response = await http.post(Uri.parse('${_baseUrl}.json'),
+    final response = await http.post(Uri.parse('${AppUrlFirebase.PRODUCT_URL}.json?auth=$_token'),
         body: jsonEncode({
           "name": product.name,
           "description": product.description,
@@ -67,7 +81,7 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<void> update(Product product) async {
-    await http.patch(Uri.parse('${_baseUrl}/${product.id}.json'),
+    await http.patch(Uri.parse('${AppUrlFirebase.PRODUCT_URL}/${product.id}.json?auth=$_token'),
         body: jsonEncode({
           "name": product.name,
           "description": product.description,
@@ -91,7 +105,7 @@ class ProductProvider with ChangeNotifier {
       notifyListeners();
 
       final response = await http.delete(
-        Uri.parse('${_baseUrl}/${product.id}.json'),
+        Uri.parse('${AppUrlFirebase.PRODUCT_URL}/${product.id}.json?auth=$_token'),
       );
 
       if (response.statusCode >= 400) {
@@ -105,16 +119,16 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  Future<void> toggleFavorite(Product product) async {
+  Future<void> toggleFavorite(Product product, String uid) async {
     int index = _items.indexWhere((element) => element.id == product.id);
     _items[index].toggleFavorite();
     notifyListeners();
 
     try {
-      final response = await http.patch(Uri.parse('${_baseUrl}/${_items[index].id}.json'),
-          body: jsonEncode({
-            "isFavorite": _items[index].isFavorite,
-          }));
+      final response = await http.put(
+        Uri.parse('${AppUrlFirebase.USER_FAVORITES_URL}/${uid}/${_items[index].id}.json?auth=$_token'),
+        body: jsonEncode(_items[index].isFavorite),
+      );
 
       if (response.statusCode >= 400) {
         _items[index].toggleFavorite();
@@ -125,6 +139,7 @@ class ProductProvider with ChangeNotifier {
         );
       }
     } catch (e) {
+      print(e);
       _items[index].toggleFavorite();
       notifyListeners();
     }

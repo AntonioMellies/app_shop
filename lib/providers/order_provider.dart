@@ -1,16 +1,22 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
 import 'package:flutter/widgets.dart';
 import 'package:shop/models/cart_item.dart';
 import 'package:shop/models/order.dart';
-import 'package:shop/models/product.dart';
+import 'package:shop/utils/app_url_firebase.dart';
 
 class OrderProvider with ChangeNotifier {
-  final _baseUrl = 'https://app-shop-50309-default-rtdb.firebaseio.com/orders';
+  final String _token;
+  final String _uid;
   List<Order> _items = [];
+
+  OrderProvider([
+    this._token = '',
+    this._uid = '',
+    this._items = const [],
+  ]);
 
   List<Order> get items {
     return [..._items];
@@ -23,8 +29,8 @@ class OrderProvider with ChangeNotifier {
   Future<void> loadOrders() async {
     _items.clear();
 
-    final response = await http.get(Uri.parse('$_baseUrl.json'));
-
+    final response = await http.get(Uri.parse('${AppUrlFirebase.ORDER_URL}/${_uid}.json?auth=$_token'));
+   
     if (response.body == 'null') return;
 
     Map<String, dynamic> data = jsonDecode(response.body);
@@ -50,7 +56,7 @@ class OrderProvider with ChangeNotifier {
   Future<void> addOrder(double totalAmount, List<CartItem> products) async {
     final dateNow = DateTime.now();
 
-    final response = await http.post(Uri.parse('${_baseUrl}.json'),
+    final response = await http.post(Uri.parse('${AppUrlFirebase.ORDER_URL}/${_uid}.json?auth=$_token'),
         body: jsonEncode({
           "date": dateNow.toIso8601String(),
           "total": totalAmount,
