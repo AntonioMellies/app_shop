@@ -1,8 +1,8 @@
-# shop
+# Shop App
 
-A new Flutter project.
+This project is an shop app example created during the learning a programming language Dart/Flutter.t.
 
-## Getting Started
+## Flutter - Getting Started
 
 This project is a starting point for a Flutter application.
 
