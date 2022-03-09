@@ -1,6 +1,6 @@
 # Shop App
 
-This project is an shop app example created during the learning a programming language Dart/Flutter.t.
+This project is an shop app example created during the learning a programming language Dart/Flutter.
 
 ## Flutter - Getting Started
 
